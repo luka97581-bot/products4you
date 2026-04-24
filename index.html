@@ -2,73 +2,51 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>products4you</title>
+<title>products4you Shop</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
 <style>
-body {
-  font-family: Arial;
-  background: #111;
-  color: white;
-  margin: 0;
-}
-
-header {
-  background: black;
-  padding: 20px;
-  text-align: center;
-  font-size: 24px;
-}
+body { font-family: Arial; background:#111; color:white; margin:0; }
+header { padding:20px; text-align:center; font-size:22px; background:#000; }
 
 #products {
-  display: grid;
+  display:grid;
   grid-template-columns: repeat(auto-fill, minmax(250px,1fr));
-  gap: 20px;
-  padding: 20px;
+  gap:20px;
+  padding:20px;
 }
 
 .product {
-  background: #1a1a1a;
-  padding: 15px;
-  border-radius: 15px;
-  transition: 0.3s;
+  background:#1c1c1c;
+  padding:15px;
+  border-radius:12px;
 }
 
-.product:hover {
-  transform: scale(1.03);
-}
-
-img {
-  width: 100%;
-  border-radius: 10px;
-}
+img { width:100%; border-radius:10px; }
 
 button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  background: #00c853;
-  border: none;
-  color: white;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.soldout {
-  background: red;
-  text-align: center;
-  padding: 10px;
-  border-radius: 10px;
-  margin-top: 10px;
+  width:100%;
+  padding:10px;
+  margin-top:10px;
+  background:#00c853;
+  border:none;
+  color:white;
+  border-radius:10px;
 }
 
 input {
-  width: 100%;
-  padding: 8px;
-  margin-top: 5px;
+  width:100%;
+  padding:8px;
+  margin-top:5px;
+}
+.soldout {
+  background:red;
+  padding:8px;
+  text-align:center;
+  border-radius:10px;
+  margin-top:10px;
 }
 </style>
 </head>
@@ -76,9 +54,11 @@ input {
 <body>
 
 <header>🛒 products4you</header>
-<div id="products"></div>
+<div id="products">Lade Produkte...</div>
 
 <script>
+console.log("JS läuft");
+
 const firebaseConfig = {
   apiKey: "AIzaSyByaqQCKC4pC8eBPczFT8m6Uo8PSeZvAWM",
   authDomain: "products4you-f45e9.firebaseapp.com",
@@ -88,47 +68,51 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-emailjs.init("ttM5iNjN5W70UtYa22IeE");
-
-function sendEmail(addr, msg, name, price) {
-  emailjs.send("service_r2voupa", "template_k7hcmkc", {
-    address: addr,
-    message: msg,
-    productName: name,
-    price: price
-  });
-}
+// PAYPAL
+const PAYPAL = "https://paypal.me/MaxSchuster496";
 
 async function loadProducts() {
   const container = document.getElementById("products");
-  container.innerHTML = "";
 
-  const snap = await db.collection("products").get();
+  try {
+    const snap = await db.collection("products").get();
 
-  snap.forEach(doc => {
-    const p = doc.data();
+    container.innerHTML = "";
 
-    let content = `
+    if (snap.empty) {
+      container.innerHTML = "<p>Keine Produkte vorhanden</p>";
+      return;
+    }
+
+    snap.forEach(doc => {
+      const p = doc.data();
+
+      let html = `
       <div class="product">
         <img src="${p.imageUrl}">
         <h3>${p.name}</h3>
         <p>${p.description}</p>
         <b>${p.price} €</b>
-    `;
-
-    if (p.qty <= 0) {
-      content += `<div class="soldout">AUSVERKAUFT</div>`;
-    } else {
-      content += `
-        <input placeholder="Adresse" id="a-${doc.id}">
-        <input placeholder="Nachricht" id="m-${doc.id}">
-        <button onclick="buy('${doc.id}','${p.name}',${p.price})">Kaufen</button>
       `;
-    }
 
-    content += `</div>`;
-    container.innerHTML += content;
-  });
+      if (p.qty <= 0) {
+        html += `<div class="soldout">AUSVERKAUFT</div>`;
+      } else {
+        html += `
+          <input placeholder="Adresse" id="a-${doc.id}">
+          <input placeholder="Nachricht" id="m-${doc.id}">
+          <button onclick="buy('${doc.id}','${p.name}',${p.price})">Kaufen</button>
+        `;
+      }
+
+      html += `</div>`;
+      container.innerHTML += html;
+    });
+
+  } catch (e) {
+    console.error(e);
+    container.innerHTML = "<h2>Fehler beim Laden</h2>";
+  }
 }
 
 async function buy(id, name, price) {
@@ -138,9 +122,12 @@ async function buy(id, name, price) {
   if (!addr) return alert("Adresse fehlt");
 
   const ref = db.collection("products").doc(id);
-  const docSnap = await ref.get();
+  const doc = await ref.get();
 
-  if (docSnap.data().qty <= 0) return alert("Ausverkauft");
+  if (doc.data().qty <= 0) {
+    alert("Ausverkauft");
+    return;
+  }
 
   await db.collection("orders").add({
     productName: name,
@@ -151,14 +138,12 @@ async function buy(id, name, price) {
   });
 
   await ref.update({
-    qty: docSnap.data().qty - 1
+    qty: doc.data().qty - 1
   });
 
-  sendEmail(addr, msg, name, price);
+  window.open(PAYPAL + "/" + price, "_blank");
 
-  window.open("https://paypal.me/MaxSchuster496/" + price, "_blank");
-
-  alert("Bestellt! Bitte PayPal zahlen.");
+  alert("Bestellt!");
   loadProducts();
 }
 
