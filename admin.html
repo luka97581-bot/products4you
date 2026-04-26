@@ -16,23 +16,19 @@ body {
   color: white;
   padding: 20px;
 }
-
 input, textarea {
   display: block;
   margin: 10px 0;
   padding: 8px;
   width: 300px;
 }
-
 button {
   padding: 10px;
   background: #00c853;
   border: none;
   color: white;
   border-radius: 8px;
-  cursor: pointer;
 }
-
 .order {
   background: #1a1a1a;
   padding: 10px;
@@ -88,10 +84,10 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-// 🔐 LOGIN (FIXED)
+// 🔐 LOGIN (MIT FEHLER ANZEIGE)
 function login() {
-  const emailVal = document.getElementById("email").value;
-  const passVal = document.getElementById("password").value;
+  const emailVal = document.getElementById("email").value.trim();
+  const passVal = document.getElementById("password").value.trim();
 
   auth.signInWithEmailAndPassword(emailVal, passVal)
     .then(() => {
@@ -108,7 +104,7 @@ function logout() {
   auth.signOut();
 }
 
-// 📦 PRODUKT HOCHLADEN
+// 📦 PRODUKT UPLOAD
 async function upload() {
   const user = auth.currentUser;
 
@@ -125,6 +121,10 @@ async function upload() {
   const price = parseFloat(document.getElementById("price").value);
   const qty = parseInt(document.getElementById("qty").value);
 
+  if (!name || isNaN(price) || isNaN(qty)) {
+    return alert("Bitte alle Felder korrekt ausfüllen");
+  }
+
   const ref = storage.ref("products/" + Date.now() + "_" + file.name);
 
   await ref.put(file);
@@ -140,7 +140,6 @@ async function upload() {
 
   alert("Produkt hochgeladen!");
 
-  // reset
   document.getElementById("name").value = "";
   document.getElementById("desc").value = "";
   document.getElementById("price").value = "";
@@ -151,27 +150,39 @@ async function upload() {
 // 🧾 BESTELLUNGEN LADEN
 async function loadOrders() {
   const container = document.getElementById("orders");
+  if (!container) return;
+
   container.innerHTML = "";
 
-  const snap = await db.collection("orders").orderBy("createdAt", "desc").get();
+  try {
+    const snap = await db.collection("orders").orderBy("createdAt","desc").get();
 
-  snap.forEach(doc => {
-    const o = doc.data();
+    snap.forEach(doc => {
+      const o = doc.data();
 
-    container.innerHTML += `
-      <div class="order">
-        <b>${o.productName}</b> (${o.price} €)<br>
-        Adresse: ${o.address}<br>
-        Nachricht: ${o.message}
-      </div>
-    `;
-  });
+      container.innerHTML += `
+        <div class="order">
+          <b>${o.productName}</b> (${o.price} €)<br>
+          Adresse: ${o.address}<br>
+          Nachricht: ${o.message}
+        </div>
+      `;
+    });
+  } catch(e) {
+    console.error(e);
+    container.innerHTML = "Fehler beim Laden";
+  }
 }
 
-// 🔄 AUTH STATE (FIXED)
+// 🔄 AUTH STATE (FIXED!!)
 auth.onAuthStateChanged(user => {
   const loginDiv = document.getElementById("login");
   const panelDiv = document.getElementById("panel");
+
+  if (!loginDiv || !panelDiv) {
+    console.error("HTML Elemente fehlen!");
+    return;
+  }
 
   if (user && user.email === ADMIN) {
     loginDiv.style.display = "none";
