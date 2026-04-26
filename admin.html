@@ -46,7 +46,7 @@ button {
   cursor: pointer;
 }
 
-/* LOGIN BUTTON (unten links) */
+/* 🔐 LOGIN BUTTON (unten links – FIXED) */
 #loginBtn {
   position: fixed;
   bottom: 20px;
@@ -57,12 +57,11 @@ button {
   background: #2196f3;
   border: none;
   font-size: 22px;
-  cursor: pointer;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
   color: white;
+  cursor: pointer;
+  z-index: 99999; /* 🔥 wichtig */
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
 }
-
-/* CART STYLE NICHT MEHR NÖTIG HIER */
 
 /* LOGIN POPUP */
 #loginPopup {
@@ -75,6 +74,7 @@ button {
   display: none;
   justify-content: center;
   align-items: center;
+  z-index: 9999;
 }
 
 #loginPopup .box {
@@ -88,7 +88,7 @@ button {
 
 <body>
 
-<!-- LOGIN BUTTON -->
+<!-- 🔐 LOGIN BUTTON -->
 <button id="loginBtn" onclick="toggleLogin()">🔐</button>
 
 <!-- LOGIN POPUP -->
@@ -111,8 +111,7 @@ button {
   <input id="price" type="number" placeholder="Preis">
   <input id="image" type="file">
 
-  <button onclick="uploadProduct()">Produkt speichern</button>
-
+  <button onclick="uploadProduct()">Speichern</button>
   <button onclick="logout()" style="background:red;">Logout</button>
 
 </div>
@@ -135,10 +134,10 @@ const storage = firebase.storage();
 
 const ADMIN_EMAIL = "luka@gerigk-web.de";
 
-/* LOGIN POPUP TOGGLE */
+/* LOGIN POPUP */
 function toggleLogin() {
-  const p = document.getElementById("loginPopup");
-  p.style.display = p.style.display === "flex" ? "none" : "flex";
+  const popup = document.getElementById("loginPopup");
+  popup.style.display = popup.style.display === "flex" ? "none" : "flex";
 }
 
 /* LOGIN */
@@ -176,7 +175,9 @@ async function uploadProduct() {
   const price = document.getElementById("price").value;
   const file = document.getElementById("image").files[0];
 
-  if (!name || !price || !file) return alert("Bitte alles ausfüllen");
+  if (!name || !price || !file) {
+    return alert("Bitte alles ausfüllen");
+  }
 
   const ref = storage.ref("products/" + Date.now() + "_" + file.name);
 
