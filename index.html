@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>products4you</title>
+<title>Shop</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -19,7 +19,7 @@ header {
   padding: 20px;
   text-align: center;
   font-size: 26px;
-  background: #000;
+  background: black;
 }
 
 #products {
@@ -39,18 +39,6 @@ img {
   width: 100%;
   border-radius: 10px;
 }
-
-#cartBtn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  width: 65px;
-  height: 65px;
-  border-radius: 50%;
-  background: orange;
-  border: none;
-  font-size: 22px;
-}
 </style>
 </head>
 
@@ -58,9 +46,7 @@ img {
 
 <header>🛒 products4you</header>
 
-<div id="products">⏳ Produkte werden geladen...</div>
-
-<button id="cartBtn">🛒</button>
+<div id="products">Lade...</div>
 
 <script>
 const firebaseConfig = {
@@ -70,41 +56,33 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-
 const db = firebase.firestore();
+
 const container = document.getElementById("products");
 
-function loadProducts() {
-  db.collection("products")
-    .orderBy("createdAt", "desc")
-    .onSnapshot(snapshot => {
+db.collection("products")
+  .orderBy("createdAt", "desc")
+  .onSnapshot(snapshot => {
 
-      container.innerHTML = "";
+    container.innerHTML = "";
 
-      if (snapshot.empty) {
-        container.innerHTML = "❌ Keine Produkte";
-        return;
-      }
+    snapshot.forEach(doc => {
+      const p = doc.data();
 
-      snapshot.forEach(doc => {
-        const p = doc.data();
-
-        container.innerHTML += `
-          <div class="card">
-            <img src="${p.imageUrl}" onerror="this.style.display='none'">
-            <h3>${p.name}</h3>
-            <p>${p.description || ""}</p>
-            <b>${Number(p.price).toFixed(2)} €</b>
-          </div>
-        `;
-      });
-    }, err => {
-      console.error(err);
-      container.innerHTML = "❌ Fehler beim Laden";
+      container.innerHTML += `
+        <div class="card">
+          <img src="${p.imageUrl}">
+          <h3>${p.name}</h3>
+          <p>${p.description || ""}</p>
+          <b>${Number(p.price).toFixed(2)} €</b>
+        </div>
+      `;
     });
-}
 
-loadProducts();
+  }, err => {
+    container.innerHTML = "Fehler beim Laden";
+    console.error(err);
+  });
 </script>
 
 </body>
