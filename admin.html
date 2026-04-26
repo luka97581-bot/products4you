@@ -17,24 +17,24 @@ body {
   color: white;
 }
 
-.center {
-  max-width: 350px;
-  margin: 80px auto;
-  background: #1a1a1a;
+/* ADMIN PANEL */
+#panel {
+  display: none;
   padding: 20px;
-  border-radius: 12px;
 }
 
+/* INPUTS */
 input, textarea {
   width: 100%;
   padding: 10px;
   margin-top: 10px;
   border-radius: 10px;
   border: none;
-  background: #222;
+  background: #1a1a1a;
   color: white;
 }
 
+/* BUTTONS */
 button {
   width: 100%;
   padding: 10px;
@@ -46,37 +46,74 @@ button {
   cursor: pointer;
 }
 
-#panel {
-  display: none;
-  padding: 20px;
+/* LOGIN BUTTON (unten links) */
+#loginBtn {
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  background: #2196f3;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+  color: white;
 }
 
-.logout {
-  background: red;
+/* CART STYLE NICHT MEHR NÖTIG HIER */
+
+/* LOGIN POPUP */
+#loginPopup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.75);
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+
+#loginPopup .box {
+  background: #1a1a1a;
+  padding: 20px;
+  border-radius: 12px;
+  width: 300px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="loginBox" class="center">
-  <h2>Admin Login</h2>
-  <input id="email" placeholder="E-Mail">
-  <input id="password" type="password" placeholder="Passwort">
-  <button onclick="login()">Login</button>
+<!-- LOGIN BUTTON -->
+<button id="loginBtn" onclick="toggleLogin()">🔐</button>
+
+<!-- LOGIN POPUP -->
+<div id="loginPopup">
+  <div class="box">
+    <h3>Admin Login</h3>
+    <input id="email" placeholder="E-Mail">
+    <input id="password" type="password" placeholder="Passwort">
+    <button onclick="login()">Login</button>
+  </div>
 </div>
 
+<!-- ADMIN PANEL -->
 <div id="panel">
 
-  <h2>Produkt hinzufügen</h2>
+  <h2>📦 Produkt hinzufügen</h2>
 
-  <input id="name" placeholder="Name">
+  <input id="name" placeholder="Produktname">
   <textarea id="desc" placeholder="Beschreibung"></textarea>
   <input id="price" type="number" placeholder="Preis">
   <input id="image" type="file">
 
-  <button onclick="uploadProduct()">Speichern</button>
-  <button class="logout" onclick="logout()">Logout</button>
+  <button onclick="uploadProduct()">Produkt speichern</button>
+
+  <button onclick="logout()" style="background:red;">Logout</button>
 
 </div>
 
@@ -98,13 +135,22 @@ const storage = firebase.storage();
 
 const ADMIN_EMAIL = "luka@gerigk-web.de";
 
+/* LOGIN POPUP TOGGLE */
+function toggleLogin() {
+  const p = document.getElementById("loginPopup");
+  p.style.display = p.style.display === "flex" ? "none" : "flex";
+}
+
 /* LOGIN */
 function login() {
   const email = document.getElementById("email").value;
   const pass = document.getElementById("password").value;
 
   auth.signInWithEmailAndPassword(email, pass)
-    .catch(e => alert(e.message));
+    .then(() => {
+      document.getElementById("loginPopup").style.display = "none";
+    })
+    .catch(err => alert(err.message));
 }
 
 /* LOGOUT */
@@ -116,15 +162,13 @@ function logout() {
 auth.onAuthStateChanged(user => {
 
   if (user && user.email === ADMIN_EMAIL) {
-    document.getElementById("loginBox").style.display = "none";
     document.getElementById("panel").style.display = "block";
   } else {
-    document.getElementById("loginBox").style.display = "block";
     document.getElementById("panel").style.display = "none";
   }
 });
 
-/* UPLOAD PRODUKT */
+/* PRODUKT UPLOAD */
 async function uploadProduct() {
 
   const name = document.getElementById("name").value;
@@ -132,12 +176,12 @@ async function uploadProduct() {
   const price = document.getElementById("price").value;
   const file = document.getElementById("image").files[0];
 
-  if (!name || !price || !file) return alert("Fehlt etwas");
+  if (!name || !price || !file) return alert("Bitte alles ausfüllen");
 
-  const imgRef = storage.ref("products/" + Date.now() + "_" + file.name);
+  const ref = storage.ref("products/" + Date.now() + "_" + file.name);
 
-  await imgRef.put(file);
-  const url = await imgRef.getDownloadURL();
+  await ref.put(file);
+  const url = await ref.getDownloadURL();
 
   await db.collection("products").add({
     name,
