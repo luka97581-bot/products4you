@@ -18,8 +18,8 @@ body {
 header {
   padding: 20px;
   text-align: center;
-  background: black;
-  font-size: 28px;
+  font-size: 26px;
+  background: #000;
 }
 
 #products {
@@ -38,17 +38,6 @@ header {
 img {
   width: 100%;
   border-radius: 10px;
-}
-
-button {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  border: none;
-  border-radius: 10px;
-  background: #00c853;
-  color: white;
-  cursor: pointer;
 }
 
 /* CART BUTTON */
@@ -70,34 +59,40 @@ button {
 
 <header>🛒 products4you</header>
 
-<div id="products"></div>
+<div id="products">Lade Produkte...</div>
 
 <button id="cartBtn">🛒</button>
 
 <script>
 
-/* FIREBASE */
+console.log("Shop Script gestartet");
+
+/* FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyByaqQCKC4pC8eBPczFT8m6Uo8PSeZvAWM",
   authDomain: "products4you-f45e9.firebaseapp.com",
   projectId: "products4you-f45e9"
 };
 
+/* INIT */
 firebase.initializeApp(firebaseConfig);
-
 const db = firebase.firestore();
 
 /* PRODUKTE LADEN */
 function loadProducts() {
 
   const container = document.getElementById("products");
-  container.innerHTML = "";
 
   db.collection("products")
     .orderBy("createdAt", "desc")
     .onSnapshot(snapshot => {
 
       container.innerHTML = "";
+
+      if (snapshot.empty) {
+        container.innerHTML = "<p style='padding:20px'>❌ Keine Produkte vorhanden</p>";
+        return;
+      }
 
       snapshot.forEach(doc => {
         const p = doc.data();
@@ -108,10 +103,13 @@ function loadProducts() {
             <h3>${p.name}</h3>
             <p>${p.description || ""}</p>
             <b>${p.price} €</b>
-            <button>In Warenkorb</button>
           </div>
         `;
       });
+    },
+    error => {
+      console.error("Firebase Fehler:", error);
+      container.innerHTML = "❌ Fehler beim Laden der Produkte";
     });
 }
 
