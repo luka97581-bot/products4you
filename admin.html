@@ -82,13 +82,16 @@ button {
 <div id="loginPopup">
   <div class="box">
     <h3>Admin Login</h3>
+
     <input id="email" placeholder="E-Mail">
     <input id="password" type="password" placeholder="Passwort">
+
     <button onclick="login()">Login</button>
   </div>
 </div>
 
 <div id="panel">
+
   <h2>📦 Produkt hinzufügen</h2>
 
   <input id="name" placeholder="Produktname">
@@ -98,6 +101,7 @@ button {
 
   <button onclick="uploadProduct()">Speichern</button>
   <button onclick="logout()" style="background:red;">Logout</button>
+
 </div>
 
 <script>
@@ -116,29 +120,36 @@ const storage = firebase.storage();
 
 const ADMIN_EMAIL = "luka@gerigk-web.de";
 
+/* LOGIN POPUP */
 function toggleLogin() {
   const popup = document.getElementById("loginPopup");
   popup.style.display = popup.style.display === "flex" ? "none" : "flex";
 }
 
+/* LOGIN */
 function login() {
-  const email = emailInput.value;
-  const pass = passwordInput.value;
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("password").value;
 
   auth.signInWithEmailAndPassword(email, pass)
-    .then(() => popup.style.display = "none")
-    .catch(err => alert(err.message));
+    .then(() => {
+      document.getElementById("loginPopup").style.display = "none";
+    })
+    .catch(err => alert("Login Fehler: " + err.message));
 }
 
+/* LOGOUT */
 function logout() {
   auth.signOut();
 }
 
+/* CHECK ADMIN */
 auth.onAuthStateChanged(user => {
   document.getElementById("panel").style.display =
     (user && user.email === ADMIN_EMAIL) ? "block" : "none";
 });
 
+/* UPLOAD */
 async function uploadProduct() {
   const name = document.getElementById("name").value;
   const desc = document.getElementById("desc").value;
@@ -149,9 +160,9 @@ async function uploadProduct() {
     return alert("Bitte alles ausfüllen");
   }
 
-  const ref = storage.ref("products/" + Date.now() + "_" + file.name);
-
   try {
+    const ref = storage.ref("products/" + Date.now() + "_" + file.name);
+
     await ref.put(file);
     const url = await ref.getDownloadURL();
 
@@ -172,6 +183,7 @@ async function uploadProduct() {
 
   } catch (e) {
     alert("Fehler: " + e.message);
+    console.error(e);
   }
 }
 </script>
