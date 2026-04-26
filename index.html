@@ -4,24 +4,24 @@
 <meta charset="UTF-8">
 <title>products4you</title>
 
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
 <style>
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: Arial;
   background: #0b0b0b;
   color: white;
 }
 
-/* HEADER */
 header {
   padding: 20px;
   text-align: center;
+  background: black;
   font-size: 28px;
-  background: #000;
-  font-weight: bold;
 }
 
-/* GRID */
 #products {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -29,23 +29,15 @@ header {
   padding: 20px;
 }
 
-/* CARD */
 .card {
-  background: rgba(255,255,255,0.05);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
+  background: #1a1a1a;
   padding: 15px;
-  border: 1px solid rgba(255,255,255,0.08);
-  transition: 0.2s;
-}
-
-.card:hover {
-  transform: scale(1.03);
+  border-radius: 15px;
 }
 
 img {
   width: 100%;
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 button {
@@ -67,51 +59,9 @@ button {
   width: 65px;
   height: 65px;
   border-radius: 50%;
-  background: #ff9800;
+  background: orange;
   border: none;
   font-size: 22px;
-  cursor: pointer;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-}
-
-/* CART PANEL */
-#cart {
-  position: fixed;
-  right: 0;
-  top: 0;
-  width: 320px;
-  height: 100%;
-  background: #111;
-  padding: 20px;
-  display: none;
-  overflow: auto;
-  border-left: 1px solid #333;
-}
-
-/* INPUTS */
-input, textarea {
-  width: 100%;
-  padding: 10px;
-  margin-top: 8px;
-  border-radius: 10px;
-  border: none;
-  background: #1a1a1a;
-  color: white;
-}
-
-/* ADMIN */
-#adminPanel {
-  display: none;
-  padding: 20px;
-  background: #121212;
-  border-top: 1px solid #333;
-}
-
-.toggle {
-  text-align: center;
-  margin: 10px;
-  color: #aaa;
-  cursor: pointer;
 }
 </style>
 </head>
@@ -120,146 +70,49 @@ input, textarea {
 
 <header>🛒 products4you</header>
 
-<div class="toggle" onclick="toggleAdmin()">
-  Admin Panel öffnen / schließen
-</div>
-
-<!-- ADMIN PANEL -->
-<div id="adminPanel">
-  <h2>Produkt hinzufügen</h2>
-
-  <input id="name" placeholder="Produktname">
-  <textarea id="desc" placeholder="Beschreibung"></textarea>
-  <input id="price" type="number" placeholder="Preis">
-  <input id="image" type="file">
-
-  <button onclick="addProduct()">Produkt hinzufügen</button>
-</div>
-
-<!-- PRODUCTS -->
 <div id="products"></div>
 
-<!-- CART BUTTON -->
-<button id="cartBtn" onclick="toggleCart()">🛒</button>
-
-<!-- CART -->
-<div id="cart">
-  <h2>Warenkorb</h2>
-  <div id="cartItems"></div>
-
-  <input id="address" placeholder="Adresse">
-  <input id="message" placeholder="Nachricht">
-
-  <button onclick="checkout()">Bestellen</button>
-</div>
+<button id="cartBtn">🛒</button>
 
 <script>
 
-let products = []; // leerer Start
-let cart = [];
+/* FIREBASE */
+const firebaseConfig = {
+  apiKey: "AIzaSyByaqQCKC4pC8eBPczFT8m6Uo8PSeZvAWM",
+  authDomain: "products4you-f45e9.firebaseapp.com",
+  projectId: "products4you-f45e9"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
 
 /* PRODUKTE LADEN */
 function loadProducts() {
+
   const container = document.getElementById("products");
   container.innerHTML = "";
 
-  products.forEach((p, i) => {
-    container.innerHTML += `
-      <div class="card">
-        <img src="${p.image}">
-        <h3>${p.name}</h3>
-        <p>${p.description}</p>
-        <b>${p.price} €</b>
-        <button onclick="addToCart(${i})">In Warenkorb</button>
-      </div>
-    `;
-  });
-}
+  db.collection("products")
+    .orderBy("createdAt", "desc")
+    .onSnapshot(snapshot => {
 
-/* PRODUKT HINZUFÜGEN */
-function addProduct() {
-  const name = document.getElementById("name").value;
-  const desc = document.getElementById("desc").value;
-  const price = document.getElementById("price").value;
-  const file = document.getElementById("image").files[0];
+      container.innerHTML = "";
 
-  if (!name || !price || !file) {
-    return alert("Bitte alle Felder ausfüllen");
-  }
+      snapshot.forEach(doc => {
+        const p = doc.data();
 
-  const reader = new FileReader();
-
-  reader.onload = function(e) {
-    products.push({
-      name,
-      description: desc,
-      price,
-      image: e.target.result
+        container.innerHTML += `
+          <div class="card">
+            <img src="${p.imageUrl}">
+            <h3>${p.name}</h3>
+            <p>${p.description || ""}</p>
+            <b>${p.price} €</b>
+            <button>In Warenkorb</button>
+          </div>
+        `;
+      });
     });
-
-    loadProducts();
-
-    document.getElementById("name").value = "";
-    document.getElementById("desc").value = "";
-    document.getElementById("price").value = "";
-    document.getElementById("image").value = "";
-  };
-
-  reader.readAsDataURL(file);
-}
-
-/* WARENKORB */
-function addToCart(i) {
-  cart.push(products[i]);
-  renderCart();
-}
-
-function renderCart() {
-  const c = document.getElementById("cartItems");
-  c.innerHTML = "";
-
-  cart.forEach(p => {
-    c.innerHTML += `<p>${p.name} - ${p.price}€</p>`;
-  });
-}
-
-/* CART TOGGLE */
-function toggleCart() {
-  const cartDiv = document.getElementById("cart");
-  cartDiv.style.display =
-    cartDiv.style.display === "block" ? "none" : "block";
-}
-
-/* ADMIN TOGGLE */
-function toggleAdmin() {
-  const a = document.getElementById("adminPanel");
-  a.style.display =
-    a.style.display === "block" ? "none" : "block";
-}
-
-/* CHECKOUT */
-function checkout() {
-  const address = document.getElementById("address").value;
-  const message = document.getElementById("message").value;
-
-  if (!address) return alert("Adresse fehlt");
-
-  let text = "Bestellung:%0D%0A";
-
-  cart.forEach(p => {
-    text += `${p.name} - ${p.price}€%0D%0A`;
-  });
-
-  text += `%0D%0AAdresse: ${address}%0D%0A`;
-  text += `Nachricht: ${message}`;
-
-  window.location.href =
-    `mailto:test@example.com?subject=Neue Bestellung&body=${text}`;
-
-  cart = [];
-  renderCart();
-
-  alert("Bestellung geöffnet!");
 }
 
 loadProducts();
