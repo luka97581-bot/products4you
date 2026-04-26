@@ -70,8 +70,8 @@ const firebaseConfig = {
 };
 
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
 
+const db = firebase.firestore();
 const container = document.getElementById("products");
 
 function loadProducts() {
@@ -82,7 +82,7 @@ function loadProducts() {
       container.innerHTML = "";
 
       if (snapshot.empty) {
-        container.innerHTML = "❌ Keine Produkte vorhanden";
+        container.innerHTML = "❌ Keine Produkte";
         return;
       }
 
@@ -99,8 +99,8 @@ function loadProducts() {
         `;
       });
     }, err => {
-      container.innerHTML = "❌ Fehler beim Laden";
       console.error(err);
+      container.innerHTML = "❌ Fehler beim Laden";
     });
 }
 
