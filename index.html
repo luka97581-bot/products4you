@@ -40,7 +40,6 @@ img {
   border-radius: 10px;
 }
 
-/* CART BUTTON */
 #cartBtn {
   position: fixed;
   bottom: 20px;
@@ -59,30 +58,23 @@ img {
 
 <header>🛒 products4you</header>
 
-<div id="products">Lade Produkte...</div>
+<div id="products">⏳ Produkte werden geladen...</div>
 
 <button id="cartBtn">🛒</button>
 
 <script>
-
-console.log("Shop Script gestartet");
-
-/* FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyByaqQCKC4pC8eBPczFT8m6Uo8PSeZvAWM",
   authDomain: "products4you-f45e9.firebaseapp.com",
   projectId: "products4you-f45e9"
 };
 
-/* INIT */
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-/* PRODUKTE LADEN */
+const container = document.getElementById("products");
+
 function loadProducts() {
-
-  const container = document.getElementById("products");
-
   db.collection("products")
     .orderBy("createdAt", "desc")
     .onSnapshot(snapshot => {
@@ -90,7 +82,7 @@ function loadProducts() {
       container.innerHTML = "";
 
       if (snapshot.empty) {
-        container.innerHTML = "<p style='padding:20px'>❌ Keine Produkte vorhanden</p>";
+        container.innerHTML = "❌ Keine Produkte vorhanden";
         return;
       }
 
@@ -99,22 +91,20 @@ function loadProducts() {
 
         container.innerHTML += `
           <div class="card">
-            <img src="${p.imageUrl}">
+            <img src="${p.imageUrl}" onerror="this.style.display='none'">
             <h3>${p.name}</h3>
             <p>${p.description || ""}</p>
-            <b>${p.price} €</b>
+            <b>${Number(p.price).toFixed(2)} €</b>
           </div>
         `;
       });
-    },
-    error => {
-      console.error("Firebase Fehler:", error);
-      container.innerHTML = "❌ Fehler beim Laden der Produkte";
+    }, err => {
+      container.innerHTML = "❌ Fehler beim Laden";
+      console.error(err);
     });
 }
 
 loadProducts();
-
 </script>
 
 </body>
