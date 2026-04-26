@@ -2,27 +2,26 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>products4you Shop</title>
-
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<title>products4you</title>
 
 <style>
-body { font-family: Arial; background:#111; color:white; margin:0; }
-header { padding:20px; text-align:center; font-size:22px; background:#000; }
+body { margin:0; font-family:Arial; background:#0f0f0f; color:white; }
+header { padding:20px; text-align:center; font-size:26px; background:#000; }
 
 #products {
   display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px,1fr));
+  grid-template-columns: repeat(auto-fill,minmax(250px,1fr));
   gap:20px;
   padding:20px;
 }
 
-.product {
-  background:#1c1c1c;
+.card {
+  background:#1a1a1a;
   padding:15px;
-  border-radius:12px;
+  border-radius:15px;
+  transition:0.2s;
 }
+.card:hover { transform: scale(1.03); }
 
 img { width:100%; border-radius:10px; }
 
@@ -30,10 +29,32 @@ button {
   width:100%;
   padding:10px;
   margin-top:10px;
-  background:#00c853;
   border:none;
-  color:white;
   border-radius:10px;
+  background:#00c853;
+  color:white;
+  cursor:pointer;
+}
+
+#cartBtn {
+  position:fixed;
+  top:20px;
+  right:20px;
+  background:#ff9800;
+  padding:10px 15px;
+  border-radius:10px;
+}
+
+#cart {
+  position:fixed;
+  right:0;
+  top:0;
+  width:300px;
+  height:100%;
+  background:#111;
+  padding:20px;
+  display:none;
+  overflow:auto;
 }
 
 input {
@@ -41,110 +62,116 @@ input {
   padding:8px;
   margin-top:5px;
 }
-.soldout {
-  background:red;
-  padding:8px;
-  text-align:center;
-  border-radius:10px;
-  margin-top:10px;
-}
 </style>
 </head>
 
 <body>
 
 <header>🛒 products4you</header>
-<div id="products">Lade Produkte...</div>
+
+<button id="cartBtn" onclick="toggleCart()">🛒 Warenkorb</button>
+
+<div id="products"></div>
+
+<div id="cart">
+  <h2>Warenkorb</h2>
+  <div id="cartItems"></div>
+
+  <input id="address" placeholder="Adresse">
+  <input id="message" placeholder="Nachricht">
+
+  <button onclick="checkout()">Bestellen</button>
+</div>
 
 <script>
-console.log("JS läuft");
 
-const firebaseConfig = {
-  apiKey: "AIzaSyByaqQCKC4pC8eBPczFT8m6Uo8PSeZvAWM",
-  authDomain: "products4you-f45e9.firebaseapp.com",
-  projectId: "products4you-f45e9"
-};
+// 🔥 PRODUKTE HIER HINZUFÜGEN
+const products = [
+  {
+    id:1,
+    name:"Sneaker",
+    description:"Coole Schuhe",
+    price:50,
+    image:"https://i.imgur.com/abc123.png",
+    paypal:"https://paypal.me/MaxSchuster496/50"
+  },
+  {
+    id:2,
+    name:"Hoodie",
+    description:"Stylischer Hoodie",
+    price:40,
+    image:"https://i.imgur.com/abc123.png",
+    paypal:"https://paypal.me/MaxSchuster496/40"
+  }
+];
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+let cart = [];
 
-// PAYPAL
-const PAYPAL = "https://paypal.me/MaxSchuster496";
-
-async function loadProducts() {
+function loadProducts() {
   const container = document.getElementById("products");
+  container.innerHTML = "";
 
-  try {
-    const snap = await db.collection("products").get();
-
-    container.innerHTML = "";
-
-    if (snap.empty) {
-      container.innerHTML = "<p>Keine Produkte vorhanden</p>";
-      return;
-    }
-
-    snap.forEach(doc => {
-      const p = doc.data();
-
-      let html = `
-      <div class="product">
-        <img src="${p.imageUrl}">
+  products.forEach(p => {
+    container.innerHTML += `
+      <div class="card">
+        <img src="${p.image}">
         <h3>${p.name}</h3>
         <p>${p.description}</p>
         <b>${p.price} €</b>
-      `;
-
-      if (p.qty <= 0) {
-        html += `<div class="soldout">AUSVERKAUFT</div>`;
-      } else {
-        html += `
-          <input placeholder="Adresse" id="a-${doc.id}">
-          <input placeholder="Nachricht" id="m-${doc.id}">
-          <button onclick="buy('${doc.id}','${p.name}',${p.price})">Kaufen</button>
-        `;
-      }
-
-      html += `</div>`;
-      container.innerHTML += html;
-    });
-
-  } catch (e) {
-    console.error(e);
-    container.innerHTML = "<h2>Fehler beim Laden</h2>";
-  }
+        <button onclick="addToCart(${p.id})">In Warenkorb</button>
+        <button onclick="buyNow(${p.id})">Sofort kaufen</button>
+      </div>
+    `;
+  });
 }
 
-async function buy(id, name, price) {
-  const addr = document.getElementById("a-" + id).value;
-  const msg = document.getElementById("m-" + id).value;
+function addToCart(id) {
+  const product = products.find(p => p.id === id);
+  cart.push(product);
+  renderCart();
+}
 
-  if (!addr) return alert("Adresse fehlt");
+function renderCart() {
+  const container = document.getElementById("cartItems");
+  container.innerHTML = "";
 
-  const ref = db.collection("products").doc(id);
-  const doc = await ref.get();
+  cart.forEach(p => {
+    container.innerHTML += `<p>${p.name} - ${p.price}€</p>`;
+  });
+}
 
-  if (doc.data().qty <= 0) {
-    alert("Ausverkauft");
-    return;
-  }
+function toggleCart() {
+  const cartDiv = document.getElementById("cart");
+  cartDiv.style.display = cartDiv.style.display === "block" ? "none" : "block";
+}
 
-  await db.collection("orders").add({
-    productName: name,
-    price: price,
-    address: addr,
-    message: msg,
-    createdAt: new Date()
+function buyNow(id) {
+  const product = products.find(p => p.id === id);
+  window.open(product.paypal, "_blank");
+}
+
+function checkout() {
+  const address = document.getElementById("address").value;
+  const message = document.getElementById("message").value;
+
+  if (!address) return alert("Adresse fehlt");
+
+  let text = "Neue Bestellung:%0D%0A";
+
+  cart.forEach(p => {
+    text += `${p.name} - ${p.price}€%0D%0A`;
   });
 
-  await ref.update({
-    qty: doc.data().qty - 1
-  });
+  text += `%0D%0AAdresse: ${address}%0D%0A`;
+  text += `Nachricht: ${message}`;
 
-  window.open(PAYPAL + "/" + price, "_blank");
+  // 📧 EMAIL
+  window.location.href = `mailto:luka@gerigk-web.de?subject=Neue Bestellung&body=${text}`;
 
-  alert("Bestellt!");
-  loadProducts();
+  alert("Email wird geöffnet!");
+
+  cart = [];
+  renderCart();
 }
 
 loadProducts();
