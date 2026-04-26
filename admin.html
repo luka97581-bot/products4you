@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Admin</title>
+<title>Admin Panel</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -10,39 +10,71 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
 <style>
-body { font-family: Arial; background:#111; color:white; padding:20px; }
-input, textarea { display:block; margin:10px 0; width:300px; }
-.order { background:#1a1a1a; padding:10px; margin:10px 0; border-radius:10px; }
+body {
+  font-family: Arial;
+  background: #111;
+  color: white;
+  padding: 20px;
+}
+
+input, textarea {
+  display: block;
+  margin: 10px 0;
+  padding: 8px;
+  width: 300px;
+}
+
+button {
+  padding: 10px;
+  background: #00c853;
+  border: none;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.order {
+  background: #1a1a1a;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 10px;
+}
 </style>
 </head>
+
 <body>
 
-<h1>Admin</h1>
+<h1>🔐 Admin Panel</h1>
 
+<!-- LOGIN -->
 <div id="login">
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Passwort">
-<button onclick="login()">Login</button>
+  <input id="email" placeholder="E-Mail">
+  <input id="password" type="password" placeholder="Passwort">
+  <button onclick="login()">Login</button>
 </div>
 
+<!-- PANEL -->
 <div id="panel" style="display:none;">
-<h2>Produkt hochladen</h2>
-<input id="name" placeholder="Name">
-<textarea id="desc"></textarea>
-<input id="price" type="number">
-<input id="qty" type="number">
-<input id="image" type="file">
-<button onclick="upload()">Upload</button>
+  <h2>Produkt hochladen</h2>
 
-<h2>Bestellungen</h2>
-<div id="orders"></div>
+  <input id="name" placeholder="Produktname">
+  <textarea id="desc" placeholder="Beschreibung"></textarea>
+  <input id="price" type="number" placeholder="Preis">
+  <input id="qty" type="number" placeholder="Menge">
+  <input id="image" type="file">
 
-<button onclick="logout()">Logout</button>
+  <button onclick="upload()">Hochladen</button>
+
+  <h2>Bestellungen</h2>
+  <div id="orders"></div>
+
+  <button onclick="logout()">Logout</button>
 </div>
 
 <script>
 const ADMIN = "luka@gerigk-web.de";
 
+// 🔥 Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyByaqQCKC4pC8eBPczFT8m6Uo8PSeZvAWM",
   authDomain: "products4you-f45e9.firebaseapp.com",
@@ -56,40 +88,72 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
+// 🔐 LOGIN (FIXED)
 function login() {
-  auth.signInWithEmailAndPassword(email.value, password.value);
+  const emailVal = document.getElementById("email").value;
+  const passVal = document.getElementById("password").value;
+
+  auth.signInWithEmailAndPassword(emailVal, passVal)
+    .then(() => {
+      console.log("Login erfolgreich");
+    })
+    .catch(err => {
+      alert("Login Fehler: " + err.message);
+      console.error(err);
+    });
 }
 
+// 🚪 LOGOUT
 function logout() {
   auth.signOut();
 }
 
+// 📦 PRODUKT HOCHLADEN
 async function upload() {
   const user = auth.currentUser;
-  if (!user || user.email !== ADMIN) return alert("Kein Zugriff");
 
-  const file = image.files[0];
-  const ref = storage.ref("products/" + Date.now() + file.name);
+  if (!user || user.email !== ADMIN) {
+    alert("Kein Zugriff!");
+    return;
+  }
+
+  const file = document.getElementById("image").files[0];
+  if (!file) return alert("Kein Bild gewählt");
+
+  const name = document.getElementById("name").value;
+  const desc = document.getElementById("desc").value;
+  const price = parseFloat(document.getElementById("price").value);
+  const qty = parseInt(document.getElementById("qty").value);
+
+  const ref = storage.ref("products/" + Date.now() + "_" + file.name);
 
   await ref.put(file);
   const url = await ref.getDownloadURL();
 
   await db.collection("products").add({
-    name: name.value,
-    description: desc.value,
-    price: parseFloat(price.value),
-    qty: parseInt(qty.value),
+    name,
+    description: desc,
+    price,
+    qty,
     imageUrl: url
   });
 
-  alert("Hochgeladen");
+  alert("Produkt hochgeladen!");
+
+  // reset
+  document.getElementById("name").value = "";
+  document.getElementById("desc").value = "";
+  document.getElementById("price").value = "";
+  document.getElementById("qty").value = "";
+  document.getElementById("image").value = "";
 }
 
+// 🧾 BESTELLUNGEN LADEN
 async function loadOrders() {
   const container = document.getElementById("orders");
   container.innerHTML = "";
 
-  const snap = await db.collection("orders").orderBy("createdAt","desc").get();
+  const snap = await db.collection("orders").orderBy("createdAt", "desc").get();
 
   snap.forEach(doc => {
     const o = doc.data();
@@ -104,11 +168,18 @@ async function loadOrders() {
   });
 }
 
+// 🔄 AUTH STATE (FIXED)
 auth.onAuthStateChanged(user => {
+  const loginDiv = document.getElementById("login");
+  const panelDiv = document.getElementById("panel");
+
   if (user && user.email === ADMIN) {
-    login.style.display = "none";
-    panel.style.display = "block";
+    loginDiv.style.display = "none";
+    panelDiv.style.display = "block";
     loadOrders();
+  } else {
+    loginDiv.style.display = "block";
+    panelDiv.style.display = "none";
   }
 });
 </script>
