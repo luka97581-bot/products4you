@@ -1,6 +1,6 @@
 [
   {
-    "origin": ["https://luka97581-bot.github.io"],
+    "origin": ["*"],
     "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
     "maxAgeSeconds": 3600
   }
