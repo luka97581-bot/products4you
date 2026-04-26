@@ -5,62 +5,113 @@
 <title>products4you</title>
 
 <style>
-body { margin:0; font-family:Arial; background:#0f0f0f; color:white; }
-header { padding:20px; text-align:center; font-size:26px; background:#000; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0b0b0b;
+  color: white;
+}
 
+/* HEADER */
+header {
+  padding: 20px;
+  text-align: center;
+  font-size: 28px;
+  background: #000;
+  font-weight: bold;
+}
+
+/* GRID */
 #products {
-  display:grid;
-  grid-template-columns: repeat(auto-fill,minmax(250px,1fr));
-  gap:20px;
-  padding:20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 20px;
 }
 
+/* CARD */
 .card {
-  background:#1a1a1a;
-  padding:15px;
-  border-radius:15px;
-  transition:0.2s;
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 15px;
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: 0.2s;
 }
-.card:hover { transform: scale(1.03); }
 
-img { width:100%; border-radius:10px; }
+.card:hover {
+  transform: scale(1.03);
+}
+
+img {
+  width: 100%;
+  border-radius: 12px;
+}
 
 button {
-  width:100%;
-  padding:10px;
-  margin-top:10px;
-  border:none;
-  border-radius:10px;
-  background:#00c853;
-  color:white;
-  cursor:pointer;
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #00c853;
+  color: white;
+  cursor: pointer;
 }
 
+/* CART BUTTON */
 #cartBtn {
-  position:fixed;
-  top:20px;
-  right:20px;
-  background:#ff9800;
-  padding:10px 15px;
-  border-radius:10px;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  background: #ff9800;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.4);
 }
 
+/* CART PANEL */
 #cart {
-  position:fixed;
-  right:0;
-  top:0;
-  width:300px;
-  height:100%;
-  background:#111;
-  padding:20px;
-  display:none;
-  overflow:auto;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 320px;
+  height: 100%;
+  background: #111;
+  padding: 20px;
+  display: none;
+  overflow: auto;
+  border-left: 1px solid #333;
 }
 
-input {
-  width:100%;
-  padding:8px;
-  margin-top:5px;
+/* INPUTS */
+input, textarea {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  border-radius: 10px;
+  border: none;
+  background: #1a1a1a;
+  color: white;
+}
+
+/* ADMIN */
+#adminPanel {
+  display: none;
+  padding: 20px;
+  background: #121212;
+  border-top: 1px solid #333;
+}
+
+.toggle {
+  text-align: center;
+  margin: 10px;
+  color: #aaa;
+  cursor: pointer;
 }
 </style>
 </head>
@@ -69,10 +120,29 @@ input {
 
 <header>🛒 products4you</header>
 
-<button id="cartBtn" onclick="toggleCart()">🛒 Warenkorb</button>
+<div class="toggle" onclick="toggleAdmin()">
+  Admin Panel öffnen / schließen
+</div>
 
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+  <h2>Produkt hinzufügen</h2>
+
+  <input id="name" placeholder="Produktname">
+  <textarea id="desc" placeholder="Beschreibung"></textarea>
+  <input id="price" type="number" placeholder="Preis">
+  <input id="image" type="file">
+
+  <button onclick="addProduct()">Produkt hinzufügen</button>
+</div>
+
+<!-- PRODUCTS -->
 <div id="products"></div>
 
+<!-- CART BUTTON -->
+<button id="cartBtn" onclick="toggleCart()">🛒</button>
+
+<!-- CART -->
 <div id="cart">
   <h2>Warenkorb</h2>
   <div id="cartItems"></div>
@@ -85,78 +155,96 @@ input {
 
 <script>
 
-// 🔥 PRODUKTE HIER HINZUFÜGEN
-const products = [
-  {
-    id:1,
-    name:"Sneaker",
-    description:"Coole Schuhe",
-    price:50,
-    image:"https://i.imgur.com/abc123.png",
-    paypal:"https://paypal.me/MaxSchuster496/50"
-  },
-  {
-    id:2,
-    name:"Hoodie",
-    description:"Stylischer Hoodie",
-    price:40,
-    image:"https://i.imgur.com/abc123.png",
-    paypal:"https://paypal.me/MaxSchuster496/40"
-  }
-];
-
+let products = []; // leerer Start
 let cart = [];
 
+/* PRODUKTE LADEN */
 function loadProducts() {
   const container = document.getElementById("products");
   container.innerHTML = "";
 
-  products.forEach(p => {
+  products.forEach((p, i) => {
     container.innerHTML += `
       <div class="card">
         <img src="${p.image}">
         <h3>${p.name}</h3>
         <p>${p.description}</p>
         <b>${p.price} €</b>
-        <button onclick="addToCart(${p.id})">In Warenkorb</button>
-        <button onclick="buyNow(${p.id})">Sofort kaufen</button>
+        <button onclick="addToCart(${i})">In Warenkorb</button>
       </div>
     `;
   });
 }
 
-function addToCart(id) {
-  const product = products.find(p => p.id === id);
-  cart.push(product);
+/* PRODUKT HINZUFÜGEN */
+function addProduct() {
+  const name = document.getElementById("name").value;
+  const desc = document.getElementById("desc").value;
+  const price = document.getElementById("price").value;
+  const file = document.getElementById("image").files[0];
+
+  if (!name || !price || !file) {
+    return alert("Bitte alle Felder ausfüllen");
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = function(e) {
+    products.push({
+      name,
+      description: desc,
+      price,
+      image: e.target.result
+    });
+
+    loadProducts();
+
+    document.getElementById("name").value = "";
+    document.getElementById("desc").value = "";
+    document.getElementById("price").value = "";
+    document.getElementById("image").value = "";
+  };
+
+  reader.readAsDataURL(file);
+}
+
+/* WARENKORB */
+function addToCart(i) {
+  cart.push(products[i]);
   renderCart();
 }
 
 function renderCart() {
-  const container = document.getElementById("cartItems");
-  container.innerHTML = "";
+  const c = document.getElementById("cartItems");
+  c.innerHTML = "";
 
   cart.forEach(p => {
-    container.innerHTML += `<p>${p.name} - ${p.price}€</p>`;
+    c.innerHTML += `<p>${p.name} - ${p.price}€</p>`;
   });
 }
 
+/* CART TOGGLE */
 function toggleCart() {
   const cartDiv = document.getElementById("cart");
-  cartDiv.style.display = cartDiv.style.display === "block" ? "none" : "block";
+  cartDiv.style.display =
+    cartDiv.style.display === "block" ? "none" : "block";
 }
 
-function buyNow(id) {
-  const product = products.find(p => p.id === id);
-  window.open(product.paypal, "_blank");
+/* ADMIN TOGGLE */
+function toggleAdmin() {
+  const a = document.getElementById("adminPanel");
+  a.style.display =
+    a.style.display === "block" ? "none" : "block";
 }
 
+/* CHECKOUT */
 function checkout() {
   const address = document.getElementById("address").value;
   const message = document.getElementById("message").value;
 
   if (!address) return alert("Adresse fehlt");
 
-  let text = "Neue Bestellung:%0D%0A";
+  let text = "Bestellung:%0D%0A";
 
   cart.forEach(p => {
     text += `${p.name} - ${p.price}€%0D%0A`;
@@ -165,16 +253,17 @@ function checkout() {
   text += `%0D%0AAdresse: ${address}%0D%0A`;
   text += `Nachricht: ${message}`;
 
-  // 📧 EMAIL
-  window.location.href = `mailto:luka@gerigk-web.de?subject=Neue Bestellung&body=${text}`;
-
-  alert("Email wird geöffnet!");
+  window.location.href =
+    `mailto:test@example.com?subject=Neue Bestellung&body=${text}`;
 
   cart = [];
   renderCart();
+
+  alert("Bestellung geöffnet!");
 }
 
 loadProducts();
+
 </script>
 
 </body>
