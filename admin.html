@@ -53,24 +53,6 @@ button {
   background: #2196f3;
   border: none;
   font-size: 22px;
-  color: white;
-  cursor: pointer;
-}
-
-#loginPopup {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.75);
-  display: none;
-  justify-content: center;
-  align-items: center;
-}
-
-#loginPopup .box {
-  background: #1a1a1a;
-  padding: 20px;
-  border-radius: 12px;
-  width: 300px;
 }
 </style>
 </head>
@@ -79,29 +61,25 @@ button {
 
 <button id="loginBtn" onclick="toggleLogin()">🔐</button>
 
-<div id="loginPopup">
-  <div class="box">
-    <h3>Admin Login</h3>
-
+<div id="loginPopup" style="display:none;">
+  <div>
+    <h3>Login</h3>
     <input id="email" placeholder="E-Mail">
     <input id="password" type="password" placeholder="Passwort">
-
     <button onclick="login()">Login</button>
   </div>
 </div>
 
 <div id="panel">
+  <h2>Produkt hinzufügen</h2>
 
-  <h2>📦 Produkt hinzufügen</h2>
-
-  <input id="name" placeholder="Produktname">
+  <input id="name" placeholder="Name">
   <textarea id="desc" placeholder="Beschreibung"></textarea>
   <input id="price" type="number" placeholder="Preis">
   <input id="image" type="file">
 
   <button onclick="uploadProduct()">Speichern</button>
   <button onclick="logout()" style="background:red;">Logout</button>
-
 </div>
 
 <script>
@@ -120,13 +98,11 @@ const storage = firebase.storage();
 
 const ADMIN_EMAIL = "luka@gerigk-web.de";
 
-/* LOGIN POPUP */
+/* LOGIN */
 function toggleLogin() {
-  const popup = document.getElementById("loginPopup");
-  popup.style.display = popup.style.display === "flex" ? "none" : "flex";
+  document.getElementById("loginPopup").style.display = "flex";
 }
 
-/* LOGIN */
 function login() {
   const email = document.getElementById("email").value;
   const pass = document.getElementById("password").value;
@@ -135,15 +111,14 @@ function login() {
     .then(() => {
       document.getElementById("loginPopup").style.display = "none";
     })
-    .catch(err => alert("Login Fehler: " + err.message));
+    .catch(e => alert(e.message));
 }
 
-/* LOGOUT */
 function logout() {
   auth.signOut();
 }
 
-/* CHECK ADMIN */
+/* ADMIN CHECK */
 auth.onAuthStateChanged(user => {
   document.getElementById("panel").style.display =
     (user && user.email === ADMIN_EMAIL) ? "block" : "none";
@@ -161,10 +136,10 @@ async function uploadProduct() {
   }
 
   try {
-    const ref = storage.ref("products/" + Date.now() + "_" + file.name);
+    const fileRef = storage.ref("products/" + Date.now() + "_" + file.name);
 
-    await ref.put(file);
-    const url = await ref.getDownloadURL();
+    await fileRef.put(file);
+    const url = await fileRef.getDownloadURL();
 
     await db.collection("products").add({
       name,
@@ -176,14 +151,9 @@ async function uploadProduct() {
 
     alert("Produkt gespeichert!");
 
-    document.getElementById("name").value = "";
-    document.getElementById("desc").value = "";
-    document.getElementById("price").value = "";
-    document.getElementById("image").value = "";
-
-  } catch (e) {
-    alert("Fehler: " + e.message);
-    console.error(e);
+  } catch (err) {
+    alert("Fehler: " + err.message);
+    console.error(err);
   }
 }
 </script>
