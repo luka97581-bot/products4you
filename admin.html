@@ -11,66 +11,78 @@
 
 <style>
 body {
+  margin: 0;
   font-family: Arial;
-  background: #111;
+  background: #0b0b0b;
   color: white;
+}
+
+.center {
+  max-width: 350px;
+  margin: 80px auto;
+  background: #1a1a1a;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #222;
+  color: white;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: none;
+  background: #00c853;
+  color: white;
+  cursor: pointer;
+}
+
+#panel {
+  display: none;
   padding: 20px;
 }
-input, textarea {
-  display: block;
-  margin: 10px 0;
-  padding: 8px;
-  width: 300px;
-}
-button {
-  padding: 10px;
-  background: #00c853;
-  border: none;
-  color: white;
-  border-radius: 8px;
-}
-.order {
-  background: #1a1a1a;
-  padding: 10px;
-  margin: 10px 0;
-  border-radius: 10px;
+
+.logout {
+  background: red;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🔐 Admin Panel</h1>
-
-<!-- LOGIN -->
-<div id="login">
+<div id="loginBox" class="center">
+  <h2>Admin Login</h2>
   <input id="email" placeholder="E-Mail">
   <input id="password" type="password" placeholder="Passwort">
   <button onclick="login()">Login</button>
 </div>
 
-<!-- PANEL -->
-<div id="panel" style="display:none;">
-  <h2>Produkt hochladen</h2>
+<div id="panel">
 
-  <input id="name" placeholder="Produktname">
+  <h2>Produkt hinzufügen</h2>
+
+  <input id="name" placeholder="Name">
   <textarea id="desc" placeholder="Beschreibung"></textarea>
   <input id="price" type="number" placeholder="Preis">
-  <input id="qty" type="number" placeholder="Menge">
   <input id="image" type="file">
 
-  <button onclick="upload()">Hochladen</button>
+  <button onclick="uploadProduct()">Speichern</button>
+  <button class="logout" onclick="logout()">Logout</button>
 
-  <h2>Bestellungen</h2>
-  <div id="orders"></div>
-
-  <button onclick="logout()">Logout</button>
 </div>
 
 <script>
-const ADMIN = "luka@gerigk-web.de";
 
-// 🔥 Firebase Config
+/* FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyByaqQCKC4pC8eBPczFT8m6Uo8PSeZvAWM",
   authDomain: "products4you-f45e9.firebaseapp.com",
@@ -84,115 +96,65 @@ const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-// 🔐 LOGIN (MIT FEHLER ANZEIGE)
-function login() {
-  const emailVal = document.getElementById("email").value.trim();
-  const passVal = document.getElementById("password").value.trim();
+const ADMIN_EMAIL = "luka@gerigk-web.de";
 
-  auth.signInWithEmailAndPassword(emailVal, passVal)
-    .then(() => {
-      console.log("Login erfolgreich");
-    })
-    .catch(err => {
-      alert("Login Fehler: " + err.message);
-      console.error(err);
-    });
+/* LOGIN */
+function login() {
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("password").value;
+
+  auth.signInWithEmailAndPassword(email, pass)
+    .catch(e => alert(e.message));
 }
 
-// 🚪 LOGOUT
+/* LOGOUT */
 function logout() {
   auth.signOut();
 }
 
-// 📦 PRODUKT UPLOAD
-async function upload() {
-  const user = auth.currentUser;
+/* AUTH CHECK */
+auth.onAuthStateChanged(user => {
 
-  if (!user || user.email !== ADMIN) {
-    alert("Kein Zugriff!");
-    return;
+  if (user && user.email === ADMIN_EMAIL) {
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("panel").style.display = "block";
+  } else {
+    document.getElementById("loginBox").style.display = "block";
+    document.getElementById("panel").style.display = "none";
   }
+});
 
-  const file = document.getElementById("image").files[0];
-  if (!file) return alert("Kein Bild gewählt");
+/* UPLOAD PRODUKT */
+async function uploadProduct() {
 
   const name = document.getElementById("name").value;
   const desc = document.getElementById("desc").value;
-  const price = parseFloat(document.getElementById("price").value);
-  const qty = parseInt(document.getElementById("qty").value);
+  const price = document.getElementById("price").value;
+  const file = document.getElementById("image").files[0];
 
-  if (!name || isNaN(price) || isNaN(qty)) {
-    return alert("Bitte alle Felder korrekt ausfüllen");
-  }
+  if (!name || !price || !file) return alert("Fehlt etwas");
 
-  const ref = storage.ref("products/" + Date.now() + "_" + file.name);
+  const imgRef = storage.ref("products/" + Date.now() + "_" + file.name);
 
-  await ref.put(file);
-  const url = await ref.getDownloadURL();
+  await imgRef.put(file);
+  const url = await imgRef.getDownloadURL();
 
   await db.collection("products").add({
     name,
     description: desc,
-    price,
-    qty,
-    imageUrl: url
+    price: Number(price),
+    imageUrl: url,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
   });
 
-  alert("Produkt hochgeladen!");
+  alert("Produkt gespeichert!");
 
   document.getElementById("name").value = "";
   document.getElementById("desc").value = "";
   document.getElementById("price").value = "";
-  document.getElementById("qty").value = "";
   document.getElementById("image").value = "";
 }
 
-// 🧾 BESTELLUNGEN LADEN
-async function loadOrders() {
-  const container = document.getElementById("orders");
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  try {
-    const snap = await db.collection("orders").orderBy("createdAt","desc").get();
-
-    snap.forEach(doc => {
-      const o = doc.data();
-
-      container.innerHTML += `
-        <div class="order">
-          <b>${o.productName}</b> (${o.price} €)<br>
-          Adresse: ${o.address}<br>
-          Nachricht: ${o.message}
-        </div>
-      `;
-    });
-  } catch(e) {
-    console.error(e);
-    container.innerHTML = "Fehler beim Laden";
-  }
-}
-
-// 🔄 AUTH STATE (FIXED!!)
-auth.onAuthStateChanged(user => {
-  const loginDiv = document.getElementById("login");
-  const panelDiv = document.getElementById("panel");
-
-  if (!loginDiv || !panelDiv) {
-    console.error("HTML Elemente fehlen!");
-    return;
-  }
-
-  if (user && user.email === ADMIN) {
-    loginDiv.style.display = "none";
-    panelDiv.style.display = "block";
-    loadOrders();
-  } else {
-    loginDiv.style.display = "block";
-    panelDiv.style.display = "none";
-  }
-});
 </script>
 
 </body>
